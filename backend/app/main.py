@@ -19,7 +19,6 @@ from app.ws.events import WSEvent
 from app.ws.manager import Connection, manager
 
 # Ensure all models are imported so Base.metadata includes all tables.
-# (Needed for Base.metadata.create_all)
 import app.models.user  # noqa: F401
 import app.models.guild  # noqa: F401
 import app.models.channel  # noqa: F401
@@ -31,17 +30,9 @@ import app.models.moderation  # noqa: F401
 import app.models.voice  # noqa: F401
 
 
-def _env_truthy(value: str | None) -> bool:
-    if value is None:
-        return False
-    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # One-time schema creation (for Railway bootstrap when migrations are not present).
-    # Enable ONLY via env var AUTO_CREATE_SCHEMA=true.
-    if _env_truthy(getattr(settings, "AUTO_CREATE_SCHEMA", None) if hasattr(settings, "AUTO_CREATE_SCHEMA") else None):
+    if settings.AUTO_CREATE_SCHEMA:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
