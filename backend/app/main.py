@@ -13,7 +13,7 @@ from app.database import AsyncSessionLocal, Base, engine
 from app.models.dm import DmParticipant
 from app.models.guild import GuildMember
 from app.models.user import User
-from app.routers import attachments, auth, channels, dms, guilds, invites, messages, moderation, roles, users, voice
+from app.routers import attachments, auth, channels, dms, guilds, invites, messages, moderation, notifications, roles, social, totp, users, voice, webhooks
 from app.services.auth import decode_access_token
 from app.ws.events import WSEvent
 from app.ws.manager import Connection, manager
@@ -28,6 +28,9 @@ import app.models.role  # noqa: F401
 import app.models.invite  # noqa: F401
 import app.models.moderation  # noqa: F401
 import app.models.voice  # noqa: F401
+import app.models.social  # noqa: F401
+import app.models.webhook  # noqa: F401
+import app.models.notification  # noqa: F401
 
 
 @asynccontextmanager
@@ -80,6 +83,10 @@ app.include_router(invites.router, prefix=API_PREFIX)
 app.include_router(roles.router, prefix=API_PREFIX)
 app.include_router(moderation.router, prefix=API_PREFIX)
 app.include_router(voice.router, prefix=API_PREFIX)
+app.include_router(social.router, prefix=API_PREFIX)
+app.include_router(webhooks.router, prefix=API_PREFIX)
+app.include_router(notifications.router, prefix=API_PREFIX)
+app.include_router(totp.router, prefix=API_PREFIX)
 
 
 @app.get("/health")

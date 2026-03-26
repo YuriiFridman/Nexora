@@ -51,3 +51,20 @@ class WSEvent:
     # Invites
     INVITE_CREATE = "INVITE_CREATE"
     INVITE_DELETE = "INVITE_DELETE"
+
+    # Pins
+    MESSAGE_PIN = "MESSAGE_PIN"
+    MESSAGE_UNPIN = "MESSAGE_UNPIN"
+
+    # Friends / social
+    FRIEND_REQUEST_CREATE = "FRIEND_REQUEST_CREATE"
+    FRIEND_REQUEST_UPDATE = "FRIEND_REQUEST_UPDATE"
+
+    # User updates
+    USER_UPDATE = "USER_UPDATE"
+
+    # Webhooks
+    WEBHOOK_CREATE = "WEBHOOK_CREATE"
+
+    # Stage channels
+    STAGE_UPDATE = "STAGE_UPDATE"

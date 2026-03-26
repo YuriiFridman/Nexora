@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.deps import CurrentUser, DbDep
 from app.models.message import Message
@@ -34,6 +36,8 @@ async def create_message(channel_id: uuid.UUID, body: MessageCreate, db: DbDep, 
     await get_channel_or_404(db, channel_id)
 
     msg = Message(channel_id=channel_id, author_id=current_user.id, content=body.content)
+    if body.reply_to_id is not None:
+        msg.reply_to_id = body.reply_to_id
     db.add(msg)
     await db.flush()
 
@@ -121,3 +125,75 @@ async def remove_reaction_endpoint(channel_id: uuid.UUID, message_id: uuid.UUID,
             WSEvent.REACTION_REMOVE,
             {"message_id": str(message_id), "user_id": str(current_user.id), "emoji": emoji},
         )
+
+
+@router.post("/{channel_id}/messages/{message_id}/pin", status_code=status.HTTP_204_NO_CONTENT)
+async def pin_message(channel_id: uuid.UUID, message_id: uuid.UUID, db: DbDep, current_user: CurrentUser):
+    msg = await get_message_or_404(db, message_id)
+    if msg.channel_id != channel_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found")
+    msg.is_pinned = True
+    await db.commit()
+    channel = await get_channel_or_404(db, channel_id)
+    if channel.guild_id:
+        await manager.broadcast_to_guild(
+            channel.guild_id, WSEvent.MESSAGE_PIN, {"message_id": str(message_id), "channel_id": str(channel_id)}
+        )
+
+
+@router.delete("/{channel_id}/messages/{message_id}/pin", status_code=status.HTTP_204_NO_CONTENT)
+async def unpin_message(channel_id: uuid.UUID, message_id: uuid.UUID, db: DbDep, current_user: CurrentUser):
+    msg = await get_message_or_404(db, message_id)
+    if msg.channel_id != channel_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found")
+    msg.is_pinned = False
+    await db.commit()
+    channel = await get_channel_or_404(db, channel_id)
+    if channel.guild_id:
+        await manager.broadcast_to_guild(
+            channel.guild_id, WSEvent.MESSAGE_UNPIN, {"message_id": str(message_id), "channel_id": str(channel_id)}
+        )
+
+
+@router.get("/{channel_id}/pins", response_model=list[MessageOut])
+async def get_pinned_messages(channel_id: uuid.UUID, db: DbDep, current_user: CurrentUser):
+    await get_channel_or_404(db, channel_id)
+    result = await db.execute(
+        select(Message)
+        .where(Message.channel_id == channel_id, Message.is_pinned == True)  # noqa: E712
+        .options(selectinload(Message.attachments), selectinload(Message.reactions), selectinload(Message.author))
+        .order_by(Message.created_at.desc())
+    )
+    msgs = result.scalars().all()
+    return [MessageOut.model_validate(m) for m in msgs]
+
+
+@router.get("/{channel_id}/messages/search", response_model=list[MessageOut])
+async def search_messages(
+    channel_id: uuid.UUID,
+    db: DbDep,
+    current_user: CurrentUser,
+    q: str = Query(default=""),
+    author_id: uuid.UUID | None = Query(default=None),
+    before: datetime | None = Query(default=None),
+    after: datetime | None = Query(default=None),
+    limit: int = Query(default=50, le=100),
+):
+    await get_channel_or_404(db, channel_id)
+    query = (
+        select(Message)
+        .where(Message.channel_id == channel_id)
+        .options(selectinload(Message.attachments), selectinload(Message.reactions), selectinload(Message.author))
+        .order_by(Message.created_at.desc())
+        .limit(limit)
+    )
+    if q:
+        query = query.where(Message.content.ilike(f"%{q}%"))
+    if author_id is not None:
+        query = query.where(Message.author_id == author_id)
+    if before is not None:
+        query = query.where(Message.created_at < before)
+    if after is not None:
+        query = query.where(Message.created_at > after)
+    result = await db.execute(query)
+    return [MessageOut.model_validate(m) for m in result.scalars().all()]
