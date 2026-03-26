@@ -1,3 +1,10 @@
+"""initial_schema
+
+Revision ID: bd6017c922c1
+Revises: 
+Create Date: 2026-03-26 20:39:33.592734
+
+"""
 from sqlalchemy import text
 
 def upgrade() -> None:
