@@ -1,18 +1,76 @@
-import os
 import asyncio
+import os
+import uuid
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+
+from fastapi import FastAPI, Query, WebSocket, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.websockets import WebSocketDisconnect
+from sqlalchemy import select
 
 from app.config import settings
+from app.database import AsyncSessionLocal
+from app.models.dm import DmParticipant
+from app.models.guild import GuildMember
+from app.models.user import User
+from app.routers import (
+    attachments,
+    auth,
+    channels,
+    dms,
+    guilds,
+    invites,
+    messages,
+    moderation,
+    notifications,
+    roles,
+    social,
+    totp,
+    users,
+    voice,
+    webhooks,
+)
+from app.services.auth import decode_access_token
+from app.ws.events import WSEvent
+from app.ws.manager import Connection, manager
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if os.getenv("RUN_MIGRATIONS_ON_STARTUP") == "1":
         def _run_migrations() -> None:
-            from alembic import command
+            import sqlalchemy
             from alembic.config import Config as AlembicConfig
+
+            from alembic import command
+
             ini_path = os.path.join(os.path.dirname(__file__), "..", "alembic.ini")
             cfg = AlembicConfig(ini_path)
+
+            # Determine the sync database URL for inspection
+            db_url = settings.DATABASE_URL
+            if "+asyncpg" in db_url:
+                db_url = db_url.replace("+asyncpg", "", 1)
+            elif db_url.startswith("postgresql+asyncpg"):
+                db_url = db_url.replace("postgresql+asyncpg", "postgresql", 1)
+
+            try:
+                sync_engine = sqlalchemy.create_engine(db_url)
+                with sync_engine.connect():
+                    # Check if alembic_version table exists
+                    has_alembic = sqlalchemy.inspect(sync_engine).has_table("alembic_version")
+                    # Check if the schema is already populated (e.g. users table exists)
+                    has_users = sqlalchemy.inspect(sync_engine).has_table("users")
+                    if not has_alembic and has_users:
+                        # Tables already exist but Alembic hasn't tracked them yet.
+                        # Stamp the current head so Alembic only runs new migrations.
+                        command.stamp(cfg, "head")
+                sync_engine.dispose()
+            except Exception:
+                # If we can't connect (e.g. fresh DB), just proceed with upgrade
+                pass
+
             command.upgrade(cfg, "head")
 
         await asyncio.get_running_loop().run_in_executor(None, _run_migrations)
@@ -42,7 +100,6 @@ app.add_middleware(
 
 # Serve uploaded files in dev mode
 if settings.STORAGE_BACKEND == "local":
-    import os
     os.makedirs(settings.STORAGE_LOCAL_PATH, exist_ok=True)
     app.mount("/uploads", StaticFiles(directory=settings.STORAGE_LOCAL_PATH), name="uploads")
 
