@@ -112,6 +112,25 @@
     "text": "Текстові канали",
     "voice": "Голосові канали",
     "add_channel": "Додати канал",
-    "topic": "Тема каналу"
+    "topic": "Тема каналу",
+    "channels": "Канали",
+    "category": "Категорія",
+    "noCategory": "Без категорії",
+    "optional": "необов'язково",
+    "nsfw": "NSFW канал",
+    "addCategory": "Додати категорію",
+    "createCategory": "Створити категорію",
+    "createTextChannel": "Створити текстовий канал",
+    "createVoiceChannel": "Створити голосовий канал",
+    "createChannel": "Створити канал",
+    "channelType": "Тип каналу",
+    "channelName": "Назва каналу",
+    "categoryName": "Назва категорії",
+    "categoryNamePlaceholder": "нова-категорія",
+    "textChannelPlaceholder": "новий-канал",
+    "voiceChannelPlaceholder": "Голосовий канал",
+    "topicPlaceholder": "Встановіть тему каналу",
+    "type_text": "Текстовий",
+    "type_voice": "Голосовий"
   }
 }

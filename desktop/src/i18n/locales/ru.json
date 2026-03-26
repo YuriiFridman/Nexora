@@ -112,6 +112,25 @@
     "text": "Текстовые каналы",
     "voice": "Голосовые каналы",
     "add_channel": "Добавить канал",
-    "topic": "Тема канала"
+    "topic": "Тема канала",
+    "channels": "Каналы",
+    "category": "Категория",
+    "noCategory": "Без категории",
+    "optional": "необязательно",
+    "nsfw": "NSFW канал",
+    "addCategory": "Добавить категорию",
+    "createCategory": "Создать категорию",
+    "createTextChannel": "Создать текстовый канал",
+    "createVoiceChannel": "Создать голосовой канал",
+    "createChannel": "Создать канал",
+    "channelType": "Тип канала",
+    "channelName": "Название канала",
+    "categoryName": "Название категории",
+    "categoryNamePlaceholder": "новая-категория",
+    "textChannelPlaceholder": "новый-канал",
+    "voiceChannelPlaceholder": "Голосовой канал",
+    "topicPlaceholder": "Установите тему канала",
+    "type_text": "Текстовый",
+    "type_voice": "Голосовой"
   }
 }
