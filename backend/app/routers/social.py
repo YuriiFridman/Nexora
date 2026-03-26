@@ -30,11 +30,12 @@ async def list_friends(db: DbDep, current_user: CurrentUser):
 
 @router.get("/friends/requests", response_model=list[FriendRequestOut])
 async def list_friend_requests(db: DbDep, current_user: CurrentUser):
+    """Return both incoming and outgoing pending friend requests for the current user."""
     result = await db.execute(
         select(FriendRequest)
         .where(
             FriendRequest.status == FriendStatus.pending,
-            FriendRequest.receiver_id == current_user.id,
+            or_(FriendRequest.sender_id == current_user.id, FriendRequest.receiver_id == current_user.id),
         )
         .options(selectinload(FriendRequest.sender), selectinload(FriendRequest.receiver))
     )

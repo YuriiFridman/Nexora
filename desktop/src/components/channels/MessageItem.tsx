@@ -20,14 +20,13 @@ interface Props {
 // ─── Simple inline markdown renderer ─────────────────────────────────────────
 
 function renderMarkdown(text: string): React.ReactNode {
-  // Split off code blocks first
+  // Split off code blocks first using matchAll for safe iteration
   const codeBlockRegex = /```([\s\S]*?)```/g;
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
-  let match: RegExpExecArray | null;
 
-  while ((match = codeBlockRegex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
+  for (const match of text.matchAll(codeBlockRegex)) {
+    if (match.index! > lastIndex) {
       parts.push(...renderInline(text.slice(lastIndex, match.index), `pre-${match.index}`));
     }
     parts.push(
@@ -39,7 +38,7 @@ function renderMarkdown(text: string): React.ReactNode {
         <code>{match[1].trim()}</code>
       </pre>,
     );
-    lastIndex = match.index + match[0].length;
+    lastIndex = match.index! + match[0].length;
   }
 
   if (lastIndex < text.length) {
@@ -57,10 +56,9 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
 
   const nodes: React.ReactNode[] = [];
   let last = 0;
-  let m: RegExpExecArray | null;
 
-  while ((m = tokenRegex.exec(text)) !== null) {
-    if (m.index > last) nodes.push(text.slice(last, m.index));
+  for (const m of text.matchAll(tokenRegex)) {
+    if (m.index! > last) nodes.push(text.slice(last, m.index));
 
     if (m[1]) {
       nodes.push(<strong key={`${keyPrefix}-b-${m.index}`}>{m[2]}</strong>);
@@ -93,7 +91,7 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
       );
     }
 
-    last = m.index + m[0].length;
+    last = m.index! + m[0].length;
   }
 
   if (last < text.length) nodes.push(text.slice(last));
