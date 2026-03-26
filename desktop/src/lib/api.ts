@@ -176,8 +176,12 @@ export const channelsApi = {
   list: (guildId: string) => request<Channel[]>(`/guilds/${guildId}/channels`),
   listCategories: (guildId: string) => request<Category[]>(`/guilds/${guildId}/categories`),
   get: (id: string) => request<Channel>(`/channels/${id}`),
-  create: (guildId: string, data: Pick<Channel, 'name' | 'type'> & { category_id?: string }) =>
-    request<Channel>(`/guilds/${guildId}/channels`, { method: 'POST', body: JSON.stringify(data) }),
+  create: (
+    guildId: string,
+    data: Pick<Channel, 'name' | 'type'> & { category_id?: string; topic?: string; is_nsfw?: boolean; position?: number },
+  ) => request<Channel>(`/guilds/${guildId}/channels`, { method: 'POST', body: JSON.stringify(data) }),
+  createCategory: (guildId: string, data: { name: string; position?: number }) =>
+    request<Category>(`/guilds/${guildId}/categories`, { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string, data: Partial<Pick<Channel, 'name' | 'topic' | 'position'>>) =>
     request<Channel>(`/channels/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   delete: (id: string) => request<void>(`/channels/${id}`, { method: 'DELETE' }),

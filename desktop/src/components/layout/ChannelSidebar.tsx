@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import GuildSettings from '@/components/guild/GuildSettings';
 import InviteModal from '@/components/guild/InviteModal';
+import CreateCategoryModal from '@/components/guild/CreateCategoryModal';
+import CreateChannelModal from '@/components/guild/CreateChannelModal';
 
 interface Props {
   guild: Guild;
@@ -22,10 +24,16 @@ interface Props {
   onSelectChannel: (id: string) => void;
 }
 
+type ChannelModalState =
+  | { open: false }
+  | { open: true; type: 'text' | 'voice'; categoryId: string | null };
+
 export default function ChannelSidebar({ guild, channels, activeChannelId, onSelectChannel }: Props) {
   const { t } = useTranslation();
   const [showSettings, setShowSettings] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const [channelModal, setChannelModal] = useState<ChannelModalState>({ open: false });
 
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['categories', guild.id],
@@ -41,6 +49,10 @@ export default function ChannelSidebar({ guild, channels, activeChannelId, onSel
       category: cat,
       channels: channels.filter((c) => c.category_id === cat.id).sort((a, b) => a.position - b.position),
     }));
+
+  function openChannelModal(type: 'text' | 'voice', categoryId: string | null = null) {
+    setChannelModal({ open: true, type, categoryId });
+  }
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -67,6 +79,19 @@ export default function ChannelSidebar({ guild, channels, activeChannelId, onSel
             {t('guild.settings')}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setShowCreateCategory(true)}>
+            <FolderPlusIcon />
+            {t('channel.createCategory')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => openChannelModal('text')}>
+            <HashPlusIcon />
+            {t('channel.createTextChannel')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => openChannelModal('voice')}>
+            <VoicePlusIcon />
+            {t('channel.createVoiceChannel')}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem danger>
             <LeaveIcon />
             {t('guild.leave')}
@@ -75,60 +100,114 @@ export default function ChannelSidebar({ guild, channels, activeChannelId, onSel
       </DropdownMenu>
 
       <ScrollArea className="flex-1 px-2 py-3">
+        {/* Uncategorized channels section header with "+" button */}
+        <div className="flex items-center justify-between mb-0.5 group">
+          <span
+            className="text-xs font-semibold uppercase tracking-wider px-1"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            {t('channel.channels')}
+          </span>
+          <button
+            onClick={() => openChannelModal('text')}
+            title={t('channel.createTextChannel')}
+            className="opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-white/10"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            <PlusIcon />
+          </button>
+        </div>
+
         {/* Uncategorized channels */}
-        {uncategorized.length > 0 && (
-          <ChannelGroup channels={uncategorized} activeChannelId={activeChannelId} onSelect={onSelectChannel} />
-        )}
+        <ChannelGroup channels={uncategorized} activeChannelId={activeChannelId} onSelect={onSelectChannel} />
 
         {/* Categorized */}
         {byCategory.map(({ category, channels: catChannels }) => (
           <CategorySection
             key={category.id}
-            name={category.name}
+            category={category}
             channels={catChannels}
             activeChannelId={activeChannelId}
             onSelect={onSelectChannel}
+            onAddChannel={(categoryId) => openChannelModal('text', categoryId)}
           />
         ))}
+
+        {/* Add category "+" button */}
+        <button
+          onClick={() => setShowCreateCategory(true)}
+          className="mt-2 flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-white/5"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          <PlusIcon />
+          {t('channel.addCategory')}
+        </button>
       </ScrollArea>
 
       {showSettings && <GuildSettings guild={guild} onClose={() => setShowSettings(false)} />}
       {showInvite && <InviteModal mode="create" guildId={guild.id} onClose={() => setShowInvite(false)} />}
+      <CreateCategoryModal
+        open={showCreateCategory}
+        guildId={guild.id}
+        onClose={() => setShowCreateCategory(false)}
+      />
+      <CreateChannelModal
+        open={channelModal.open}
+        guildId={guild.id}
+        categories={categories}
+        defaultType={channelModal.open ? channelModal.type : 'text'}
+        defaultCategoryId={channelModal.open ? channelModal.categoryId : null}
+        onClose={() => setChannelModal({ open: false })}
+        onCreated={onSelectChannel}
+      />
     </div>
   );
 }
 
 function CategorySection({
-  name,
+  category,
   channels,
   activeChannelId,
   onSelect,
+  onAddChannel,
 }: {
-  name: string;
+  category: Category;
   channels: Channel[];
   activeChannelId: string | null;
   onSelect: (id: string) => void;
+  onAddChannel: (categoryId: string) => void;
 }) {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
 
   return (
     <div className="mb-2">
-      <button
-        onClick={() => setCollapsed((c) => !c)}
-        className="flex w-full items-center gap-1 py-1 text-xs font-semibold uppercase tracking-wider hover:text-[var(--channel-hover)] transition-colors"
-        style={{ color: 'var(--text-muted)' }}
-      >
-        <svg
-          width="10"
-          height="10"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          className={cn('transition-transform', collapsed ? '-rotate-90' : '')}
+      <div className="flex items-center group">
+        <button
+          onClick={() => setCollapsed((c) => !c)}
+          className="flex flex-1 items-center gap-1 py-1 text-xs font-semibold uppercase tracking-wider hover:text-[var(--channel-hover)] transition-colors"
+          style={{ color: 'var(--text-muted)' }}
         >
-          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        {name}
-      </button>
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className={cn('transition-transform', collapsed ? '-rotate-90' : '')}
+          >
+            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          {category.name}
+        </button>
+        <button
+          onClick={() => onAddChannel(category.id)}
+          title={t('channel.createTextChannel')}
+          className="opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-white/10"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          <PlusIcon />
+        </button>
+      </div>
       {!collapsed && (
         <ChannelGroup channels={channels} activeChannelId={activeChannelId} onSelect={onSelect} />
       )}
@@ -205,6 +284,36 @@ function LeaveIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
       <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" strokeLinecap="round"/><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
+function PlusIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0">
+      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+function FolderPlusIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
+      <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round"/>
+      <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
+    </svg>
+  );
+}
+function HashPlusIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
+      <line x1="4" y1="9" x2="20" y2="9" /><line x1="4" y1="15" x2="20" y2="15" />
+      <line x1="10" y1="3" x2="8" y2="21" /><line x1="16" y1="3" x2="14" y2="21" />
+    </svg>
+  );
+}
+function VoicePlusIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 010 7.07" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
