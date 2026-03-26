@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import select
 
 from app.deps import CurrentUser, DbDep
@@ -10,6 +10,12 @@ from app.models.user import User
 from app.schemas.user import UserOut, UserUpdateRequest
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+
+@router.get("/search", response_model=list[UserOut])
+async def search_users(db: DbDep, current_user: CurrentUser, q: str = Query(..., min_length=1)):
+    result = await db.execute(select(User).where(User.username.ilike(f"%{q}%")).limit(25))
+    return [UserOut.model_validate(u) for u in result.scalars().all()]
 
 
 @router.get("/{user_id}", response_model=UserOut)
@@ -27,6 +33,12 @@ async def update_me(body: UserUpdateRequest, db: DbDep, current_user: CurrentUse
         current_user.display_name = body.display_name
     if body.avatar_url is not None:
         current_user.avatar_url = body.avatar_url
+    if body.status is not None:
+        current_user.status = body.status
+    if body.custom_status is not None:
+        current_user.custom_status = body.custom_status
+    if body.bio is not None:
+        current_user.bio = body.bio
     await db.commit()
     await db.refresh(current_user)
     return UserOut.model_validate(current_user)

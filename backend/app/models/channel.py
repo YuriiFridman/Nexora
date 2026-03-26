@@ -19,6 +19,9 @@ class ChannelType(str, enum.Enum):
     voice = "voice"
     dm = "dm"
     group_dm = "group_dm"
+    stage = "stage"
+    forum = "forum"
+    announcement = "announcement"
 
 
 class OverwriteTargetType(str, enum.Enum):
@@ -51,10 +54,14 @@ class Channel(Base):
     topic: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     is_nsfw: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    slowmode_delay: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    bitrate: Mapped[int] = mapped_column(Integer, default=64000, nullable=False)
+    user_limit: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("channels.id", ondelete="SET NULL"), nullable=True)
 
     guild: Mapped = relationship("Guild", back_populates="channels")
     category: Mapped[Category | None] = relationship("Category", back_populates="channels")
-    messages: Mapped[list] = relationship("Message", back_populates="channel", cascade="all, delete-orphan")
+    messages: Mapped[list] = relationship("Message", back_populates="channel", cascade="all, delete-orphan", foreign_keys="[Message.channel_id]")
     overwrites: Mapped[list[ChannelOverwrite]] = relationship("ChannelOverwrite", back_populates="channel", cascade="all, delete-orphan")
     voice_sessions: Mapped[list] = relationship("VoiceSession", back_populates="channel", cascade="all, delete-orphan")
 

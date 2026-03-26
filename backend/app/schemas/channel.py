@@ -35,6 +35,9 @@ class ChannelCreate(BaseModel):
     position: int = 0
     topic: str | None = None
     is_nsfw: bool = False
+    slowmode_delay: int = 0
+    bitrate: int = 64000
+    user_limit: int = 0
 
 
 class ChannelUpdate(BaseModel):
@@ -43,6 +46,9 @@ class ChannelUpdate(BaseModel):
     position: int | None = None
     topic: str | None = None
     is_nsfw: bool | None = None
+    slowmode_delay: int | None = None
+    bitrate: int | None = None
+    user_limit: int | None = None
 
 
 class ChannelOut(BaseModel):
@@ -57,6 +63,10 @@ class ChannelOut(BaseModel):
     topic: str | None
     is_nsfw: bool
     created_at: datetime
+    slowmode_delay: int = 0
+    bitrate: int = 64000
+    user_limit: int = 0
+    parent_id: uuid.UUID | None = None
 
 
 class OverwriteUpsert(BaseModel):

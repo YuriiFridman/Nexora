@@ -11,6 +11,7 @@ from app.schemas.user import UserOut
 class MessageCreate(BaseModel):
     content: str
     attachment_ids: list[uuid.UUID] = []
+    reply_to_id: uuid.UUID | None = None
 
 
 class MessageUpdate(BaseModel):
@@ -46,8 +47,14 @@ class MessageOut(BaseModel):
     author_id: uuid.UUID | None
     content: str
     is_edited: bool
+    is_pinned: bool = False
+    reply_to_id: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime
     attachments: list[AttachmentOut] = []
     reactions: list[ReactionOut] = []
     author: UserOut | None = None
+    reply_to: MessageOut | None = None
+
+
+MessageOut.model_rebuild()

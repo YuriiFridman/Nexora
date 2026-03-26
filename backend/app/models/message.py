@@ -24,10 +24,15 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
-    channel: Mapped = relationship("Channel", back_populates="messages")
+    reply_to_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("messages.id", ondelete="SET NULL"), nullable=True, index=True)
+    is_pinned: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    thread_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("channels.id", ondelete="SET NULL"), nullable=True)
+
+    channel: Mapped = relationship("Channel", back_populates="messages", foreign_keys="[Message.channel_id]")
     author: Mapped = relationship("User")
     attachments: Mapped[list[Attachment]] = relationship("Attachment", back_populates="message", cascade="all, delete-orphan")
     reactions: Mapped[list[Reaction]] = relationship("Reaction", back_populates="message", cascade="all, delete-orphan")
+    reply_to: Mapped[Message | None] = relationship("Message", remote_side="Message.id", foreign_keys="[Message.reply_to_id]")
 
 
 class Attachment(Base):

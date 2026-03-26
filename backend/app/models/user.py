@@ -24,9 +24,15 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="offline", nullable=False)
+    custom_status: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    totp_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    is_2fa_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    bio: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
     refresh_tokens: Mapped[list[RefreshToken]] = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     guild_memberships: Mapped[list] = relationship("GuildMember", back_populates="user", cascade="all, delete-orphan")
+    friends: Mapped[list] = relationship("FriendRequest", primaryjoin="or_(FriendRequest.sender_id == User.id, FriendRequest.receiver_id == User.id)", foreign_keys="[FriendRequest.sender_id, FriendRequest.receiver_id]", viewonly=True)
 
 
 class RefreshToken(Base):
