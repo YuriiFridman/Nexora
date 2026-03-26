@@ -4,26 +4,25 @@ import asyncio
 import os
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from app.database import Base  # noqa: F401 - ensure Base is imported
-
 # Import all models so Alembic can detect them for autogenerate
-import app.models.user  # noqa: F401
-import app.models.guild  # noqa: F401
 import app.models.channel  # noqa: F401
-import app.models.message  # noqa: F401
 import app.models.dm  # noqa: F401
-import app.models.role  # noqa: F401
+import app.models.guild  # noqa: F401
 import app.models.invite  # noqa: F401
+import app.models.message  # noqa: F401
 import app.models.moderation  # noqa: F401
-import app.models.voice  # noqa: F401
-import app.models.social  # noqa: F401
-import app.models.webhook  # noqa: F401
 import app.models.notification  # noqa: F401
+import app.models.role  # noqa: F401
+import app.models.social  # noqa: F401
+import app.models.user  # noqa: F401
+import app.models.voice  # noqa: F401
+import app.models.webhook  # noqa: F401
+from alembic import context
+from app.database import Base  # noqa: F401 - ensure Base is imported
 
 config = context.config
 
@@ -56,7 +55,7 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
     with context.begin_transaction():
         context.run_migrations()
 
