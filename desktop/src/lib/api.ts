@@ -10,8 +10,10 @@ import type {
   NotificationSetting,
   GuildMember,
   MemberRole,
+  PermissionEntry,
   RegisterRequest,
   Role,
+  RoleAuditLog,
   TokenResponse,
   User,
   VoiceParticipant,
@@ -272,12 +274,21 @@ export const invitesApi = {
 export const rolesApi = {
   list: (guildId: string) => request<Role[]>(`/guilds/${guildId}/roles`),
   listMemberRoles: (guildId: string) => request<MemberRole[]>(`/guilds/${guildId}/member-roles`),
-  create: (guildId: string, data: Pick<Role, 'name' | 'color' | 'permissions' | 'hoist' | 'position'>) =>
+  listTemplates: () => request<string[]>('/role-templates'),
+  listPermissions: () => request<PermissionEntry[]>('/permissions'),
+  listAudit: (guildId: string) => request<RoleAuditLog[]>(`/guilds/${guildId}/roles/audit`),
+  create: (guildId: string, data: Pick<Role, 'name' | 'color' | 'permissions' | 'hoist' | 'position' | 'mentionable' | 'icon_emoji'>) =>
     request<Role>(`/guilds/${guildId}/roles`, { method: 'POST', body: JSON.stringify(data) }),
-  update: (guildId: string, roleId: string, data: Partial<Pick<Role, 'name' | 'color' | 'permissions' | 'hoist' | 'position'>>) =>
+  createFromTemplate: (guildId: string, data: { template: string; name?: string; position?: number }) =>
+    request<Role>(`/guilds/${guildId}/roles/template`, { method: 'POST', body: JSON.stringify(data) }),
+  update: (guildId: string, roleId: string, data: Partial<Pick<Role, 'name' | 'color' | 'permissions' | 'hoist' | 'position' | 'mentionable' | 'icon_emoji'>>) =>
     request<Role>(`/guilds/${guildId}/roles/${roleId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  duplicate: (guildId: string, roleId: string) =>
+    request<Role>(`/guilds/${guildId}/roles/${roleId}/duplicate`, { method: 'POST' }),
   delete: (guildId: string, roleId: string) =>
     request<void>(`/guilds/${guildId}/roles/${roleId}`, { method: 'DELETE' }),
+  reorder: (guildId: string, items: Array<{ role_id: string; position: number }>) =>
+    request<void>(`/guilds/${guildId}/role-reorder`, { method: 'PATCH', body: JSON.stringify({ items }) }),
   assignToMember: (guildId: string, roleId: string, userId: string) =>
     request<MemberRole>(
       `/guilds/${guildId}/roles/${roleId}/members/${userId}`,
@@ -285,6 +296,10 @@ export const rolesApi = {
     ),
   removeFromMember: (guildId: string, roleId: string, userId: string) =>
     request<void>(`/guilds/${guildId}/roles/${roleId}/members/${userId}`, { method: 'DELETE' }),
+  bulkAssign: (guildId: string, roleId: string, user_ids: string[]) =>
+    request<void>(`/guilds/${guildId}/roles/bulk-assign`, { method: 'POST', body: JSON.stringify({ role_id: roleId, user_ids }) }),
+  bulkRemove: (guildId: string, roleId: string, user_ids: string[]) =>
+    request<void>(`/guilds/${guildId}/roles/bulk-remove`, { method: 'DELETE', body: JSON.stringify({ role_id: roleId, user_ids }) }),
 };
 
 // ─── Moderation ───────────────────────────────────────────────────────────────
