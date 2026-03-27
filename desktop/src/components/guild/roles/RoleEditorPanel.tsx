@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { PermissionEntry, Role } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { roleColorToHex } from '@/lib/colors';
 import PermissionGroup from './PermissionGroup';
 import ColorPicker from './ColorPicker';
 
@@ -69,7 +70,7 @@ export default function RoleEditorPanel({
     <div className="space-y-3 rounded-xl border border-white/10 bg-[var(--bg-secondary)] p-4">
       <div className="rounded-lg border border-white/10 bg-[var(--bg-primary)] p-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Role Preview</p>
-        <p className="mt-2 text-lg font-semibold" style={{ color: `#${roleColor.toString(16).padStart(6, '0')}` }}>
+        <p className="mt-2 text-lg font-semibold" style={{ color: roleColorToHex(roleColor) }}>
           {roleEmoji ? `${roleEmoji} ` : ''}{roleName || 'Unnamed role'}
         </p>
       </div>

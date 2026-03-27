@@ -1,4 +1,5 @@
 import { Input } from '@/components/ui/input';
+import { roleColorToHex } from '@/lib/colors';
 
 const PRESET_COLORS = [
   0xED4245,
@@ -16,23 +17,19 @@ interface Props {
   onChange: (value: number) => void;
 }
 
-function toHex(color: number) {
-  return `#${Math.max(0, Math.min(0xFFFFFF, color)).toString(16).padStart(6, '0')}`;
-}
-
 export default function ColorPicker({ value, onChange }: Props) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <input
           type="color"
-          value={toHex(value)}
+          value={roleColorToHex(value)}
           onChange={(e) => onChange(parseInt(e.target.value.slice(1), 16))}
           aria-label="Role color"
           className="h-10 w-12 cursor-pointer rounded border border-white/15 bg-transparent"
         />
         <Input
-          value={toHex(value)}
+          value={roleColorToHex(value)}
           onChange={(e) => onChange(parseInt(e.target.value.replace('#', ''), 16) || 0)}
           placeholder="#5865F2"
           maxLength={7}
@@ -44,9 +41,9 @@ export default function ColorPicker({ value, onChange }: Props) {
             key={color}
             type="button"
             onClick={() => onChange(color)}
-            aria-label={`Set role color ${toHex(color)}`}
+            aria-label={`Set role color ${roleColorToHex(color)}`}
             className="h-6 w-6 rounded-full border border-white/15 transition-transform hover:scale-110"
-            style={{ backgroundColor: toHex(color) }}
+            style={{ backgroundColor: roleColorToHex(color) }}
           />
         ))}
         <button

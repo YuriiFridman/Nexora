@@ -1,5 +1,6 @@
 import type { Role } from '@/types';
 import { Button } from '@/components/ui/button';
+import { roleColorToHex } from '@/lib/colors';
 
 interface Props {
   role: Role;
@@ -10,10 +11,6 @@ interface Props {
   onMoveDown: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
-}
-
-function toHex(color: number) {
-  return `#${Math.max(0, Math.min(0xFFFFFF, color)).toString(16).padStart(6, '0')}`;
 }
 
 export default function RoleItem({
@@ -41,7 +38,7 @@ export default function RoleItem({
         aria-label={`Select role ${role.name}`}
       >
         <span className="flex items-center gap-2">
-          <span className="text-lg" style={{ color: toHex(role.color) }}>●</span>
+          <span className="text-lg" style={{ color: roleColorToHex(role.color) }}>●</span>
           <span>
             <span className="block text-sm font-semibold text-[var(--text-primary)]">
               {role.icon_emoji ? `${role.icon_emoji} ` : ''}

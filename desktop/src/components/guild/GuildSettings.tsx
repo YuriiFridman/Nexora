@@ -14,6 +14,8 @@ interface Props {
   onClose: () => void;
 }
 
+const NOTICE_DISPLAY_DURATION = 1800;
+
 export default function GuildSettings({ guild, onClose }: Props) {
   const { t } = useTranslation();
   const qc = useQueryClient();
@@ -199,7 +201,7 @@ export default function GuildSettings({ guild, onClose }: Props) {
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(''), 1800);
+    const timer = window.setTimeout(() => setNotice(''), NOTICE_DISPLAY_DURATION);
     return () => window.clearTimeout(timer);
   }, [notice]);
 

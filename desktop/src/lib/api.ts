@@ -299,7 +299,7 @@ export const rolesApi = {
   bulkAssign: (guildId: string, roleId: string, user_ids: string[]) =>
     request<void>(`/guilds/${guildId}/roles/bulk-assign`, { method: 'POST', body: JSON.stringify({ role_id: roleId, user_ids }) }),
   bulkRemove: (guildId: string, roleId: string, user_ids: string[]) =>
-    request<void>(`/guilds/${guildId}/roles/bulk-assign`, { method: 'DELETE', body: JSON.stringify({ role_id: roleId, user_ids }) }),
+    request<void>(`/guilds/${guildId}/roles/bulk-remove`, { method: 'DELETE', body: JSON.stringify({ role_id: roleId, user_ids }) }),
 };
 
 // ─── Moderation ───────────────────────────────────────────────────────────────

@@ -454,16 +454,18 @@ async def duplicate_role(guild_id: uuid.UUID, role_id: uuid.UUID, db: DbDep, cur
     await _ensure_manageable_role(db, guild_id, current_user, role)
 
     base_name = f"{role.name} Copy"
+    existing_names = {
+        existing_role.name
+        for existing_role in (
+            await db.execute(select(Role).where(Role.guild_id == guild_id))
+        ).scalars().all()
+    }
     name = base_name
-    suffix = 2
-    while True:
-        existing = (
-            await db.execute(select(Role).where(Role.guild_id == guild_id, Role.name == name))
-        ).scalar_one_or_none()
-        if not existing:
-            break
+    if name in existing_names:
+        suffix = 2
+        while f"{base_name} {suffix}" in existing_names:
+            suffix += 1
         name = f"{base_name} {suffix}"
-        suffix += 1
     duplicated = Role(
         guild_id=guild_id,
         name=name,
@@ -571,6 +573,16 @@ async def bulk_remove_role(guild_id: uuid.UUID, body: RoleBulkAssignPayload, db:
         role.id,
     )
     await db.commit()
+
+
+@router.delete("/guilds/{guild_id}/roles/bulk-remove", status_code=status.HTTP_204_NO_CONTENT)
+async def bulk_remove_role_alias(
+    guild_id: uuid.UUID,
+    body: RoleBulkAssignPayload,
+    db: DbDep,
+    current_user: CurrentUser,
+):
+    await bulk_remove_role(guild_id, body, db, current_user)
 
 
 @router.get("/guilds/{guild_id}/roles/audit", response_model=list[RoleAuditLogOut])
