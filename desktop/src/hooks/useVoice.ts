@@ -78,9 +78,14 @@ export function useVoice(): VoiceHookState {
   const mutedRef = useRef(false);
   const deafenedRef = useRef(false);
   const preDeafenMuteRef = useRef(false);
+  // Refs to avoid stale closures in WS event handlers
+  const inCallRef = useRef(false);
+  const channelIdRef = useRef<string | null>(null);
 
   mutedRef.current = isMuted;
   deafenedRef.current = isDeafened;
+  inCallRef.current = inCall;
+  channelIdRef.current = channelId;
 
   const createPeer = useCallback(
     (remoteUserId: string, initiator: boolean): RTCPeerConnection => {
@@ -112,7 +117,18 @@ export function useVoice(): VoiceHookState {
           if (preferredOutputId && 'setSinkId' in entry.audioEl) {
             entry.audioEl.setSinkId(preferredOutputId).catch(() => undefined);
           }
-          entry.audioEl.play().catch(() => undefined);
+          entry.audioEl.play().catch((err: unknown) => {
+            // Autoplay was blocked; resume on next user gesture
+            if (err instanceof DOMException && err.name === 'NotAllowedError') {
+              const resume = () => {
+                document.removeEventListener('click', resume);
+                document.removeEventListener('keydown', resume);
+                entry.audioEl?.play().catch(() => undefined);
+              };
+              document.addEventListener('click', resume, { once: true });
+              document.addEventListener('keydown', resume, { once: true });
+            }
+          });
           peersRef.current.set(remoteUserId, entry);
         }
       };
@@ -178,7 +194,8 @@ export function useVoice(): VoiceHookState {
       is_muted: boolean;
       is_deafened: boolean;
     };
-    if (!inCall || data.channel_id !== channelId) return;
+    // Use refs to avoid stale closure over inCall/channelId state
+    if (!inCallRef.current || data.channel_id !== channelIdRef.current) return;
 
     const localUserId = currentUserRef.current?.id;
     if (data.action === 'join' && data.user.id !== localUserId && !peersRef.current.has(data.user.id)) {
@@ -218,7 +235,7 @@ export function useVoice(): VoiceHookState {
       }
       return prev.filter((p) => p.user.id !== data.user.id);
     });
-  }, [channelId, createPeer, inCall]);
+  }, [createPeer]);
 
   useEffect(() => {
     on('CALL_SIGNAL', handleCallSignal);
@@ -256,14 +273,12 @@ export function useVoice(): VoiceHookState {
           const pc = createPeer(p.user.id, true);
           peersRef.current.set(p.user.id, { userId: p.user.id, pc });
         });
-
-      send('CALL_SIGNAL', { channel_id: chId, type: 'join' });
     },
-    [createPeer, send],
+    [createPeer],
   );
 
   const leaveChannel = useCallback(() => {
-    const chId = channelId;
+    const chId = channelIdRef.current;
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
     peersRef.current.forEach(({ pc, audioEl }) => {
@@ -285,9 +300,8 @@ export function useVoice(): VoiceHookState {
     preDeafenMuteRef.current = false;
     if (chId) {
       voiceApi.leave(chId).catch(console.error);
-      send('CALL_SIGNAL', { channel_id: chId, type: 'leave' });
     }
-  }, [channelId, send]);
+  }, []);
 
   const toggleMute = useCallback(() => {
     const stream = localStreamRef.current;
@@ -297,10 +311,11 @@ export function useVoice(): VoiceHookState {
     setIsMuted(newMuted);
     mutedRef.current = newMuted;
     playToggleSound('mute', newMuted);
-    if (channelId) {
-      voiceApi.setState(channelId, { is_muted: newMuted, is_deafened: deafenedRef.current }).catch(console.error);
+    const chId = channelIdRef.current;
+    if (chId) {
+      voiceApi.setState(chId, { is_muted: newMuted, is_deafened: deafenedRef.current }).catch(console.error);
     }
-  }, [channelId]);
+  }, []);
 
   const toggleDeafen = useCallback(() => {
     const stream = localStreamRef.current;
@@ -327,13 +342,14 @@ export function useVoice(): VoiceHookState {
       if (audioEl) audioEl.muted = newDeafened;
     });
 
-    if (channelId) {
-      voiceApi.setState(channelId, {
+    const chId = channelIdRef.current;
+    if (chId) {
+      voiceApi.setState(chId, {
         is_muted: mutedRef.current,
         is_deafened: newDeafened,
       }).catch(console.error);
     }
-  }, [channelId]);
+  }, []);
 
   return { inCall, channelId, participants, localStream, isMuted, isDeafened, joinChannel, leaveChannel, toggleMute, toggleDeafen };
 }

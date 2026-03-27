@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.guild import Guild, GuildMember
 from app.models.moderation import ActionType, GuildBan, ModerationAction
 from app.models.user import User
+from app.ws.events import WSEvent
+from app.ws.manager import manager
 
 
 async def log_action(
@@ -49,6 +51,11 @@ async def kick_member(
     await db.delete(member)
     await log_action(db, guild.id, actor.id, ActionType.kick, target_id, reason)
     await db.commit()
+    await manager.broadcast_to_guild(
+        guild.id,
+        WSEvent.GUILD_MEMBER_REMOVE,
+        {"guild_id": str(guild.id), "user_id": str(target_id)},
+    )
 
 
 async def ban_member(
@@ -81,6 +88,12 @@ async def ban_member(
     await log_action(db, guild.id, actor.id, ActionType.ban, target_id, reason)
     await db.commit()
     await db.refresh(ban)
+    if member:
+        await manager.broadcast_to_guild(
+            guild.id,
+            WSEvent.GUILD_MEMBER_REMOVE,
+            {"guild_id": str(guild.id), "user_id": str(target_id)},
+        )
     return ban
 
 

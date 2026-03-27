@@ -3,10 +3,8 @@ from __future__ import annotations
 import pyotp
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import select
 
 from app.deps import CurrentUser, DbDep
-from app.models.user import User
 
 router = APIRouter(prefix="/auth/2fa", tags=["2fa"])
 

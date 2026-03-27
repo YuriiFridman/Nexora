@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { friendsApi } from '@/lib/api';
+import { friendsApi, usersApi } from '@/lib/api';
 import { usePresenceStore } from '@/store/presence';
 import { useAuthStore } from '@/store/auth';
 import { getInitials } from '@/lib/utils';
@@ -40,7 +40,17 @@ export default function FriendsPanel() {
   });
 
   const sendRequest = useMutation({
-    mutationFn: (receiverId: string) => friendsApi.send(receiverId),
+    mutationFn: async (username: string) => {
+      // Look up user by username first to get their UUID
+      const users = await usersApi.searchByUsername(username);
+      const exactMatch = users.find(
+        (u) => u.username.toLowerCase() === username.toLowerCase(),
+      );
+      if (!exactMatch) {
+        throw new Error(t('friends.user_not_found'));
+      }
+      return friendsApi.send(exactMatch.id.toString());
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['friendRequests'] });
       setAddSuccess(t('friends.send_request'));

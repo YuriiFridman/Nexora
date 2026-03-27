@@ -7,10 +7,13 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
 from app.deps import CurrentUser, DbDep
+from app.models.message import Message
 from app.models.webhook import Webhook
+from app.schemas.message import MessageOut
 from app.schemas.webhook import WebhookCreate, WebhookExecute, WebhookOut, WebhookUpdate
 from app.services.channel import get_channel_or_404
-from app.services.guild import get_guild_or_404, require_member
+from app.services.guild import require_member
+from app.services.message import get_message_or_404
 from app.ws.events import WSEvent
 from app.ws.manager import manager
 
@@ -95,8 +98,6 @@ async def execute_webhook(webhook_id: uuid.UUID, webhook_token: str, body: Webho
     if webhook is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Webhook not found")
 
-    from app.models.message import Message
-
     display_name = body.username or webhook.name
     msg = Message(
         channel_id=webhook.channel_id,
@@ -105,9 +106,6 @@ async def execute_webhook(webhook_id: uuid.UUID, webhook_token: str, body: Webho
     )
     db.add(msg)
     await db.commit()
-
-    from app.schemas.message import MessageOut
-    from app.services.message import get_message_or_404
 
     msg = await get_message_or_404(db, msg.id)
     payload = MessageOut.model_validate(msg).model_dump(mode="json")

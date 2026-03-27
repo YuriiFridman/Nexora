@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.deps import CurrentUser, DbDep
 from app.models.social import FriendRequest, FriendStatus
-from app.schemas.social import FriendRequestCreate, FriendRequestOut
+from app.schemas.social import FriendRequestAction, FriendRequestCreate, FriendRequestOut
 from app.ws.events import WSEvent
 from app.ws.manager import manager
 
@@ -77,8 +77,8 @@ async def send_friend_request(body: FriendRequestCreate, db: DbDep, current_user
 
 
 @router.patch("/friends/requests/{request_id}", response_model=FriendRequestOut)
-async def respond_to_friend_request(request_id: uuid.UUID, body: dict, db: DbDep, current_user: CurrentUser):
-    action = body.get("action")
+async def respond_to_friend_request(request_id: uuid.UUID, body: FriendRequestAction, db: DbDep, current_user: CurrentUser):
+    action = body.action
     if action not in ("accept", "reject"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="action must be 'accept' or 'reject'")
 
@@ -94,9 +94,10 @@ async def respond_to_friend_request(request_id: uuid.UUID, body: dict, db: DbDep
     if action == "accept":
         req.status = FriendStatus.accepted
     else:
+        rejected_payload = FriendRequestOut.model_validate(req)
         await db.delete(req)
         await db.commit()
-        return FriendRequestOut.model_validate(req)
+        return rejected_payload
 
     await db.commit()
     result = await db.execute(

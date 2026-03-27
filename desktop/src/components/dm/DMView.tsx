@@ -24,7 +24,13 @@ export default function DMView({ dmId }: Props) {
     queryFn: () => dmsApi.get(dmId),
   });
 
-  if (!dm) return null;
+  if (!dm) {
+    return (
+      <div className="flex h-full items-center justify-center" style={{ color: 'var(--text-muted)' }}>
+        {t('common.loading')}
+      </div>
+    );
+  }
 
   const isGroup = dm.participants.length > 2;
   const others = dm.participants.filter((p: User) => p.id !== user?.id);

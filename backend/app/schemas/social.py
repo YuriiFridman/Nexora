@@ -22,3 +22,7 @@ class FriendRequestOut(BaseModel):
 
 class FriendRequestCreate(BaseModel):
     receiver_id: uuid.UUID
+
+
+class FriendRequestAction(BaseModel):
+    action: str

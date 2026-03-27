@@ -10,7 +10,7 @@ import MessageItem from './MessageItem';
 
 interface Props {
   channelId: string;
-  guildId: string;
+  guildId?: string;
   onReply?: (message: Message) => void;
 }
 
@@ -69,7 +69,7 @@ export default function MessageList({ channelId, onReply }: Props) {
     if (isNearBottom) {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // containerRef and bottomRef are stable React refs and intentionally omitted from deps
   }, [lastMessageId]);
 
   // Intersection observer for infinite scroll
@@ -147,10 +147,12 @@ export default function MessageList({ channelId, onReply }: Props) {
 
   useEffect(() => {
     on('MESSAGE_CREATE', handleMessageCreate);
+    on('DM_MESSAGE_CREATE', handleMessageCreate);
     on('MESSAGE_UPDATE', handleMessageUpdate);
     on('MESSAGE_DELETE', handleMessageDelete);
     return () => {
       off('MESSAGE_CREATE', handleMessageCreate);
+      off('DM_MESSAGE_CREATE', handleMessageCreate);
       off('MESSAGE_UPDATE', handleMessageUpdate);
       off('MESSAGE_DELETE', handleMessageDelete);
     };
