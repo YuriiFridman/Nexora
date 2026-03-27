@@ -106,7 +106,7 @@ export const useWebSocketStore = create<WSState>((set, get) => ({
     const { handlers } = get();
     const set_ = handlers.get(msg.event);
     set_?.forEach((h) => h(msg.data));
-    // also fire wildcard handlers
-    handlers.get('*')?.forEach((h) => h(msg));
+    // also fire wildcard handlers with just the data payload
+    handlers.get('*')?.forEach((h) => h(msg.data));
   },
 }));

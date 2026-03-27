@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter
 from sqlalchemy import select
 
 from app.deps import CurrentUser, DbDep

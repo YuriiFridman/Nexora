@@ -13,7 +13,7 @@ export function useTyping(channelId: string, guildId: string | null) {
 
   const onKeystroke = useCallback(() => {
     if (timerRef.current) return; // already sent recently
-    send('TYPING_START', { channel_id: channelId, guild_id: guildId });
+    send('TYPING_START', { channel_id: channelId, ...(guildId ? { guild_id: guildId } : {}) });
     timerRef.current = setTimeout(() => {
       timerRef.current = null;
     }, TYPING_DEBOUNCE_MS);

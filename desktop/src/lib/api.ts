@@ -367,16 +367,6 @@ export const searchApi = {
   },
 };
 
-// ─── Users extended ───────────────────────────────────────────────────────────
-export const usersExtApi = {
-  search: (q: string) => {
-    const qs = new URLSearchParams({ q });
-    return request<User[]>(`/users/search?${qs}`);
-  },
-  updateMe: (data: Partial<Pick<User, 'display_name' | 'avatar_url' | 'status' | 'custom_status' | 'bio'>>) =>
-    usersApi.updateMe(data),
-};
-
 // ─── Webhooks ─────────────────────────────────────────────────────────────────
 
 export const webhooksApi = {

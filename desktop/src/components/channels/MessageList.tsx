@@ -10,7 +10,7 @@ import MessageItem from './MessageItem';
 
 interface Props {
   channelId: string;
-  guildId: string;
+  guildId?: string;
   onReply?: (message: Message) => void;
 }
 

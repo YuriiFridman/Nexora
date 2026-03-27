@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { dmsApi, usersExtApi } from '@/lib/api';
+import { dmsApi, usersApi } from '@/lib/api';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,7 +44,7 @@ export default function DMList({ selectedChannelId, onSelect }: Props) {
       setSearchResults([]);
       return;
     }
-    const results = await usersExtApi.search(q.trim()).catch(() => []);
+    const results = await usersApi.searchByUsername(q.trim()).catch(() => []);
     setSearchResults(results.filter((u: User) => u.id !== user?.id));
   }
 

@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { getInitials } from '@/lib/utils';
-import { usersExtApi } from '@/lib/api';
+import { usersApi } from '@/lib/api';
 import UserSettings from '@/components/settings/UserSettings';
 import type { PresenceStatus } from '@/types';
 
@@ -27,7 +27,7 @@ export default function UserPanel() {
   const [showSettings, setShowSettings] = useState(false);
 
   const updateStatusMutation = useMutation({
-    mutationFn: (status: string) => usersExtApi.updateMe({ status }),
+    mutationFn: (status: string) => usersApi.updateMe({ status }),
     onSuccess: (updated) => {
       setUser(updated);
       if (user) setStatus(user.id, updated.status as PresenceStatus ?? 'online');

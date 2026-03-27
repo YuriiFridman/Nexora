@@ -137,16 +137,13 @@ export default function MessageItem({ message, channelId, isGrouped = false, onR
   const editMutation = useMutation({
     mutationFn: (content: string) => messagesApi.edit(channelId, message.id, content),
     onSuccess: (updated) => {
-      queryClient.setQueryData<{ pages: { items: Message[] }[] }>(
+      queryClient.setQueryData<{ pages: Message[][]; pageParams: unknown[] }>(
         ['messages', channelId],
         (old) => {
           if (!old) return old;
           return {
             ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              items: page.items.map((m) => (m.id === updated.id ? updated : m)),
-            })),
+            pages: old.pages.map((page) => page.map((m) => (m.id === updated.id ? updated : m))),
           };
         },
       );

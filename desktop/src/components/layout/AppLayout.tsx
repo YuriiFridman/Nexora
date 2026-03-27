@@ -200,7 +200,7 @@ export default function AppLayout() {
   }
 
   const activeGuild = guilds.find((g) => g.id === guildId);
-  const activeChannelId = view.type === 'guild' ? view.channelId : view.channelId;
+  const activeChannelId = view.channelId;
   const activeChannel = channels.find((c) => c.id === activeChannelId);
 
   return (
