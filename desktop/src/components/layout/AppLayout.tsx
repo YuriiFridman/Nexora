@@ -304,6 +304,7 @@ function SkeletonState() {
             <div className="h-9 w-9 rounded-full shrink-0" style={{ background: 'var(--bg-tertiary)' }} />
             <div className="flex flex-col gap-2 flex-1">
               <div className="h-3 w-24 rounded" style={{ background: 'var(--bg-tertiary)' }} />
+              {/* Vary widths to simulate realistic message lengths */}
               <div className="h-3 rounded" style={{ background: 'var(--bg-tertiary)', width: `${50 + (i * 17) % 40}%` }} />
             </div>
           </div>

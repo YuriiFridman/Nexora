@@ -121,9 +121,9 @@ export function useVoice(): VoiceHookState {
             // Autoplay was blocked; resume on next user gesture
             if (err instanceof DOMException && err.name === 'NotAllowedError') {
               const resume = () => {
-                entry.audioEl?.play().catch(() => undefined);
                 document.removeEventListener('click', resume);
                 document.removeEventListener('keydown', resume);
+                entry.audioEl?.play().catch(() => undefined);
               };
               document.addEventListener('click', resume, { once: true });
               document.addEventListener('keydown', resume, { once: true });
@@ -264,7 +264,7 @@ export function useVoice(): VoiceHookState {
       await voiceApi.join(chId).catch(console.error);
       const existingParticipants = await voiceApi.getParticipants(chId).catch((err) => {
         console.error(err);
-        return [] as VoiceParticipant[];
+        return [];
       });
       existingParticipants
         .filter((p: VoiceParticipant) => p.user.id !== user.id)
