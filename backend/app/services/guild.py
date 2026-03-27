@@ -37,10 +37,15 @@ async def require_permission(
     permission: int,
 ) -> None:
     """Raise 403 if the user lacks the given permission in the guild."""
-    if guild.owner_id == user.id:
-        return  # Owner has all permissions
+    combined = await get_user_permissions_mask(db, guild, user.id)
+    if not (combined & permission):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
 
-    # Load member roles
+
+async def get_user_permissions_mask(db: AsyncSession, guild: Guild, user_id: uuid.UUID) -> int:
+    if guild.owner_id == user_id:
+        return Permissions.all()
+
     result = await db.execute(
         select(Role)
         .join(Role.member_roles)
@@ -48,12 +53,11 @@ async def require_permission(
             Role.guild_id == guild.id,
         )
         .filter(
-            Role.member_roles.any(user_id=user.id)  # type: ignore[attr-defined]
+            Role.member_roles.any(user_id=user_id)  # type: ignore[attr-defined]
         )
     )
     roles = result.scalars().all()
 
-    # Always include @everyone role
     everyone_result = await db.execute(
         select(Role).where(Role.guild_id == guild.id, Role.is_default == True)  # noqa: E712
     )
@@ -66,10 +70,34 @@ async def require_permission(
         combined |= role.permissions
 
     if combined & Permissions.ADMINISTRATOR:
-        return
+        return Permissions.all()
+    return combined
 
-    if not (combined & permission):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+
+async def get_user_top_role_position(db: AsyncSession, guild_id: uuid.UUID, user_id: uuid.UUID) -> int:
+    """Get highest role position user can control in guild."""
+    guild_result = await db.execute(select(Guild).where(Guild.id == guild_id))
+    guild = guild_result.scalar_one_or_none()
+    if guild is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guild not found")
+
+    if guild.owner_id == user_id:
+        return 10**9
+
+    everyone_result = await db.execute(select(Role).where(Role.guild_id == guild_id, Role.is_default == True))  # noqa: E712
+    everyone = everyone_result.scalar_one_or_none()
+    top = everyone.position if everyone else 0
+
+    result = await db.execute(
+        select(Role)
+        .join(Role.member_roles)
+        .where(Role.guild_id == guild_id)
+        .filter(Role.member_roles.any(user_id=user_id))  # type: ignore[attr-defined]
+    )
+    for role in result.scalars().all():
+        if role.position > top:
+            top = role.position
+    return top
 
 
 async def create_guild(db: AsyncSession, name: str, owner: User) -> Guild:

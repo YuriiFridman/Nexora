@@ -85,7 +85,9 @@ export interface Role {
   guild_id: string;
   name: string;
   color: number;
+  icon_emoji?: string | null;
   hoist: boolean;
+  mentionable?: boolean;
   position: number;
   permissions: number;
   is_default: boolean;
@@ -104,6 +106,25 @@ export interface MemberRole {
   guild_id: string;
   user_id: string;
   role_id: string;
+}
+
+export interface PermissionEntry {
+  key: string;
+  label: string;
+  description: string;
+  value: number;
+  category: string;
+  critical: boolean;
+}
+
+export interface RoleAuditLog {
+  id: string;
+  guild_id: string;
+  role_id: string | null;
+  actor_id: string;
+  action: string;
+  details: string | null;
+  created_at: string;
 }
 
 export interface Invite {
