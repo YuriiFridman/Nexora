@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { guildsApi, channelsApi } from '@/lib/api';
-import type { Guild, Channel } from '@/types';
+import type { Guild, Channel, Message } from '@/types';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import GuildSidebar from './GuildSidebar';
 import ChannelSidebar from './ChannelSidebar';
@@ -27,7 +27,14 @@ export default function AppLayout() {
 
   const { data: guilds = [] } = useQuery({
     queryKey: ['guilds'],
-    queryFn: guildsApi.list,
+    queryFn: async () => {
+      const list = await guildsApi.list();
+      // Seed individual guild cache entries to avoid re-fetching on navigation
+      list.forEach((g) => {
+        queryClient.setQueryData(['guild', g.id], g);
+      });
+      return list;
+    },
   });
 
   useEffect(() => {
@@ -60,25 +67,97 @@ export default function AppLayout() {
     queryClient.invalidateQueries({ queryKey: ['guilds'] });
     setView({ type: 'dm', channelId: null });
   });
+  useWebSocket('GUILD_UPDATE', (data) => {
+    const guild = data as Guild;
+    queryClient.setQueryData<Guild>(['guild', guild.id], guild);
+    queryClient.invalidateQueries({ queryKey: ['guilds'] });
+  });
+  // MESSAGE_CREATE/UPDATE/DELETE are handled inside MessageList via setQueryData.
+  // We keep invalidation here only for channels that have no active subscriber
+  // (i.e. the user is not currently viewing that channel).
   useWebSocket('MESSAGE_CREATE', (data) => {
-    const msg = data as { channel_id: string; guild_id?: string };
-    queryClient.invalidateQueries({ queryKey: ['messages', msg.channel_id] });
+    const msg = data as Message;
+    queryClient.setQueryData<{ pages: Message[][]; pageParams: unknown[] }>(
+      ['messages', msg.channel_id],
+      (old) => {
+        if (!old) return old;
+        // Avoid duplicates (MessageList may have already added it)
+        const allIds = new Set(old.pages.flatMap((p) => p.map((m) => m.id)));
+        if (allIds.has(msg.id)) return old;
+        const pages = [...old.pages];
+        pages[pages.length - 1] = [...pages[pages.length - 1], msg];
+        return { ...old, pages };
+      },
+    );
   });
   useWebSocket('MESSAGE_UPDATE', (data) => {
-    const msg = data as { channel_id: string };
-    queryClient.invalidateQueries({ queryKey: ['messages', msg.channel_id] });
+    const msg = data as Message;
+    queryClient.setQueryData<{ pages: Message[][]; pageParams: unknown[] }>(
+      ['messages', msg.channel_id],
+      (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => page.map((m) => (m.id === msg.id ? msg : m))),
+        };
+      },
+    );
   });
   useWebSocket('MESSAGE_DELETE', (data) => {
-    const msg = data as { channel_id: string };
-    queryClient.invalidateQueries({ queryKey: ['messages', msg.channel_id] });
+    const { message_id, channel_id } = data as { message_id: string; channel_id: string };
+    queryClient.setQueryData<{ pages: Message[][]; pageParams: unknown[] }>(
+      ['messages', channel_id],
+      (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => page.filter((m) => m.id !== message_id)),
+        };
+      },
+    );
+  });
+  useWebSocket('DM_MESSAGE_CREATE', (data) => {
+    const msg = data as Message;
+    queryClient.setQueryData<{ pages: Message[][]; pageParams: unknown[] }>(
+      ['messages', msg.channel_id],
+      (old) => {
+        if (!old) return old;
+        const allIds = new Set(old.pages.flatMap((p) => p.map((m) => m.id)));
+        if (allIds.has(msg.id)) return old;
+        const pages = [...old.pages];
+        pages[pages.length - 1] = [...pages[pages.length - 1], msg];
+        return { ...old, pages };
+      },
+    );
+    queryClient.invalidateQueries({ queryKey: ['dms'] });
   });
   useWebSocket('CHANNEL_CREATE', (data) => {
+    const ch = data as Channel;
+    if (ch.guild_id) queryClient.invalidateQueries({ queryKey: ['channels', ch.guild_id] });
+  });
+  useWebSocket('CHANNEL_UPDATE', (data) => {
     const ch = data as Channel;
     if (ch.guild_id) queryClient.invalidateQueries({ queryKey: ['channels', ch.guild_id] });
   });
   useWebSocket('CHANNEL_DELETE', (data) => {
     const ch = data as { guild_id?: string };
     if (ch.guild_id) queryClient.invalidateQueries({ queryKey: ['channels', ch.guild_id] });
+  });
+  useWebSocket('GUILD_MEMBER_ADD', (data) => {
+    const payload = data as { guild_id: string };
+    if (payload.guild_id) {
+      queryClient.invalidateQueries({ queryKey: ['guildMembers', payload.guild_id] });
+      queryClient.invalidateQueries({ queryKey: ['guilds'] });
+    }
+  });
+  useWebSocket('GUILD_MEMBER_REMOVE', (data) => {
+    const payload = data as { guild_id: string; user_id: string };
+    if (payload.guild_id) {
+      queryClient.invalidateQueries({ queryKey: ['guildMembers', payload.guild_id] });
+    }
+  });
+  useWebSocket('DM_THREAD_CREATE', () => {
+    queryClient.invalidateQueries({ queryKey: ['dms'] });
   });
   useWebSocket('PRESENCE_UPDATE', (data) => {
     const payload = data as { user_id: string; status: 'online' | 'idle' | 'dnd' | 'invisible' | 'offline' };
@@ -89,7 +168,7 @@ export default function AppLayout() {
   // Auto-select first text channel when guild selected
   const guildId = view.type === 'guild' ? view.guildId : undefined;
   const viewChannelId = view.channelId;
-  const { data: channels = [] } = useQuery({
+  const { data: channels = [], isLoading: isChannelsLoading } = useQuery({
     queryKey: ['channels', guildId],
     queryFn: () => channelsApi.list(guildId!),
     enabled: !!guildId,
@@ -176,7 +255,9 @@ export default function AppLayout() {
         {/* Main Content */}
         <div className="flex flex-1 flex-col overflow-hidden">
           <ErrorBoundary>
-            {view.type === 'guild' && view.channelId ? (
+            {view.type === 'guild' && isChannelsLoading ? (
+              <SkeletonState />
+            ) : view.type === 'guild' && view.channelId ? (
               activeChannel ? (
                 <ChannelView channel={activeChannel} guild={activeGuild!} />
               ) : (
@@ -205,6 +286,29 @@ function BlankState({ label }: { label: string }) {
         </svg>
       </div>
       <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{label}</p>
+    </div>
+  );
+}
+
+function SkeletonState() {
+  return (
+    <div className="flex flex-col h-full animate-pulse" style={{ background: 'var(--bg-primary)' }}>
+      {/* Header skeleton */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5" style={{ background: 'var(--bg-primary)' }}>
+        <div className="h-5 w-32 rounded" style={{ background: 'var(--bg-tertiary)' }} />
+      </div>
+      {/* Messages skeleton */}
+      <div className="flex flex-col gap-4 p-4 flex-1 overflow-hidden">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="flex items-start gap-3">
+            <div className="h-9 w-9 rounded-full shrink-0" style={{ background: 'var(--bg-tertiary)' }} />
+            <div className="flex flex-col gap-2 flex-1">
+              <div className="h-3 w-24 rounded" style={{ background: 'var(--bg-tertiary)' }} />
+              <div className="h-3 rounded" style={{ background: 'var(--bg-tertiary)', width: `${50 + (i * 17) % 40}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

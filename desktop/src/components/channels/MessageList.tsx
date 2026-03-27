@@ -147,10 +147,12 @@ export default function MessageList({ channelId, onReply }: Props) {
 
   useEffect(() => {
     on('MESSAGE_CREATE', handleMessageCreate);
+    on('DM_MESSAGE_CREATE', handleMessageCreate);
     on('MESSAGE_UPDATE', handleMessageUpdate);
     on('MESSAGE_DELETE', handleMessageDelete);
     return () => {
       off('MESSAGE_CREATE', handleMessageCreate);
+      off('DM_MESSAGE_CREATE', handleMessageCreate);
       off('MESSAGE_UPDATE', handleMessageUpdate);
       off('MESSAGE_DELETE', handleMessageDelete);
     };

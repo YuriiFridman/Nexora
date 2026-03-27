@@ -159,6 +159,10 @@ export const authApi = {
 
 export const usersApi = {
   getById: (id: string) => request<User>(`/users/${id}`),
+  searchByUsername: (username: string) => {
+    const qs = new URLSearchParams({ q: username });
+    return request<User[]>(`/users/search?${qs}`);
+  },
   updateMe: (data: Partial<Pick<User, 'display_name' | 'avatar_url' | 'status' | 'custom_status' | 'bio'>>) =>
     request<User>('/users/me', { method: 'PATCH', body: JSON.stringify(data) }),
 };

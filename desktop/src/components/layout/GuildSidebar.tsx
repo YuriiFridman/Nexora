@@ -6,6 +6,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn, getInitials } from '@/lib/utils';
 import CreateGuildModal from '@/components/guild/CreateGuildModal';
 import InviteModal from '@/components/guild/InviteModal';
+import { queryClient } from '@/lib/queryClient';
+import { guildsApi, channelsApi } from '@/lib/api';
 
 interface Props {
   guilds: Guild[];
@@ -105,11 +107,17 @@ export default function GuildSidebar({ guilds, activeGuildId, onSelectGuild, onS
 }
 
 function GuildIcon({ guild, isActive, onClick }: { guild: Guild; isActive: boolean; onClick: () => void }) {
+  function handleMouseEnter() {
+    queryClient.prefetchQuery({ queryKey: ['guild', guild.id], queryFn: () => guildsApi.get(guild.id) });
+    queryClient.prefetchQuery({ queryKey: ['channels', guild.id], queryFn: () => channelsApi.list(guild.id) });
+  }
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <button
           onClick={onClick}
+          onMouseEnter={handleMouseEnter}
           className={cn(
             'relative flex h-12 w-12 items-center justify-center transition-all duration-200',
             isActive ? 'rounded-[16px]' : 'rounded-[24px] hover:rounded-[16px]',
