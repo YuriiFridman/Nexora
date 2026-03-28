@@ -126,7 +126,7 @@ export default function UserProfileCard({ user: targetUser, onClose }: Props) {
       {/* Avatar */}
       <div className="px-4 -mt-8 relative">
         <div className="relative inline-block">
-          <Avatar className="h-16 w-16 ring-4" style={{ ['--tw-ring-color' as string]: 'var(--bg-primary)' }}>
+          <Avatar className="h-16 w-16 ring-4 ring-[var(--bg-primary)]">
             {targetUser.avatar_url && <AvatarImage src={targetUser.avatar_url} />}
             <AvatarFallback
               className="text-lg"
@@ -198,11 +198,10 @@ export default function UserProfileCard({ user: targetUser, onClose }: Props) {
             placeholder={t('notes.placeholder')}
             maxLength={4096}
             rows={2}
-            className="w-full resize-none rounded p-2 text-xs outline-none focus:ring-1"
+            className="w-full resize-none rounded p-2 text-xs outline-none focus:ring-1 focus:ring-[var(--accent)]"
             style={{
               background: 'var(--bg-tertiary)',
               color: 'var(--text-primary)',
-              ['--tw-ring-color' as string]: 'var(--accent)',
             }}
           />
           <div className="flex items-center justify-between mt-1">
