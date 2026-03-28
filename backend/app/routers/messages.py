@@ -256,7 +256,7 @@ async def search_messages(
 async def bulk_delete_messages(
     channel_id: uuid.UUID, body: BulkDeleteRequest, db: DbDep, current_user: CurrentUser
 ):
-    if len(body.message_ids) == 0:
+    if not body.message_ids:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No message IDs provided")
     if len(body.message_ids) > 100:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot bulk-delete more than 100 messages")
