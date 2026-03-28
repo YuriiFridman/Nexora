@@ -63,7 +63,6 @@ from app.schemas.features import (
     SoundEffectCreate,
     SoundEffectOut,
     ThreadCreateIn,
-    ThreadMetaOut,
     UserActivityOut,
     UserActivityUpdate,
     UserBadgeCreate,

@@ -22,6 +22,25 @@ import type {
   UserNote,
   VoiceParticipant,
   Webhook,
+  ScreenShareSession,
+  GuildEvent,
+  Poll,
+  PollResult,
+  UserActivityInfo,
+  GuildEmoji,
+  BookmarkEntry,
+  GuildSettingsInfo,
+  GuildTemplateInfo,
+  SoundEffect,
+  ReminderInfo,
+  AutoModRule,
+  UserSlowmodeInfo,
+  GuildSticker,
+  UserBadge,
+  GuildTagInfo,
+  VanityInviteInfo,
+  ExtendedAuditLogEntry,
+  UserConnectionInfo,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
@@ -437,4 +456,199 @@ export const readStateApi = {
       method: 'PUT',
       body: JSON.stringify({ last_message_id: lastMessageId }),
     }),
+};
+
+// ─── Screen Sharing ───────────────────────────────────────────────────────────
+
+export const screenShareApi = {
+  start: (channelId: string) =>
+    request<ScreenShareSession>(`/voice/channels/${channelId}/screen-share/start`, { method: 'POST' }),
+  stop: (channelId: string) =>
+    request<ScreenShareSession>(`/voice/channels/${channelId}/screen-share/stop`, { method: 'POST' }),
+  list: (channelId: string) =>
+    request<ScreenShareSession[]>(`/voice/channels/${channelId}/screen-share`),
+};
+
+// ─── Guild Events ─────────────────────────────────────────────────────────────
+
+export const guildEventsApi = {
+  create: (guildId: string, data: { name: string; start_time: string; description?: string; location?: string; end_time?: string }) =>
+    request<GuildEvent>(`/guilds/${guildId}/events`, { method: 'POST', body: JSON.stringify(data) }),
+  list: (guildId: string) => request<GuildEvent[]>(`/guilds/${guildId}/events`),
+  update: (guildId: string, eventId: string, data: Partial<{ name: string; description: string; location: string; start_time: string; end_time: string; status: string }>) =>
+    request<GuildEvent>(`/guilds/${guildId}/events/${eventId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (guildId: string, eventId: string) =>
+    request<void>(`/guilds/${guildId}/events/${eventId}`, { method: 'DELETE' }),
+};
+
+// ─── Polls ────────────────────────────────────────────────────────────────────
+
+export const pollsApi = {
+  create: (channelId: string, data: { question: string; options: string[]; expires_at?: string }) =>
+    request<Poll>(`/channels/${channelId}/polls`, { method: 'POST', body: JSON.stringify(data) }),
+  vote: (channelId: string, pollId: string, optionIndex: number) =>
+    request<void>(`/channels/${channelId}/polls/${pollId}/vote`, { method: 'POST', body: JSON.stringify({ option_index: optionIndex }) }),
+  results: (channelId: string, pollId: string) =>
+    request<PollResult>(`/channels/${channelId}/polls/${pollId}/results`),
+};
+
+// ─── Threads ──────────────────────────────────────────────────────────────────
+
+export const threadsApi = {
+  create: (channelId: string, data: { name: string; parent_message_id?: string }) =>
+    request<Channel>(`/channels/${channelId}/threads`, { method: 'POST', body: JSON.stringify(data) }),
+  list: (channelId: string) => request<Channel[]>(`/channels/${channelId}/threads`),
+};
+
+// ─── User Activity ────────────────────────────────────────────────────────────
+
+export const userActivityApi = {
+  set: (data: { activity_type: string; activity_name: string; details?: string }) =>
+    request<UserActivityInfo>('/users/me/activity', { method: 'PUT', body: JSON.stringify(data) }),
+  clear: () => request<void>('/users/me/activity', { method: 'DELETE' }),
+  get: (userId: string) => request<UserActivityInfo>(`/users/${userId}/activity`),
+};
+
+// ─── Guild Emojis ─────────────────────────────────────────────────────────────
+
+export const guildEmojisApi = {
+  create: (guildId: string, data: { name: string; image_url: string }) =>
+    request<GuildEmoji>(`/guilds/${guildId}/emojis`, { method: 'POST', body: JSON.stringify(data) }),
+  list: (guildId: string) => request<GuildEmoji[]>(`/guilds/${guildId}/emojis`),
+  delete: (guildId: string, emojiId: string) =>
+    request<void>(`/guilds/${guildId}/emojis/${emojiId}`, { method: 'DELETE' }),
+};
+
+// ─── Bookmarks ────────────────────────────────────────────────────────────────
+
+export const bookmarksApi = {
+  create: (data: { message_id: string; note?: string }) =>
+    request<BookmarkEntry>('/bookmarks', { method: 'POST', body: JSON.stringify(data) }),
+  list: () => request<BookmarkEntry[]>('/bookmarks'),
+  delete: (bookmarkId: string) => request<void>(`/bookmarks/${bookmarkId}`, { method: 'DELETE' }),
+};
+
+// ─── Guild Settings ───────────────────────────────────────────────────────────
+
+export const guildSettingsApi = {
+  get: (guildId: string) => request<GuildSettingsInfo>(`/guilds/${guildId}/settings`),
+  update: (guildId: string, data: Partial<{ afk_channel_id: string; afk_timeout: number; default_notifications: string; system_channel_id: string }>) =>
+    request<GuildSettingsInfo>(`/guilds/${guildId}/settings`, { method: 'PATCH', body: JSON.stringify(data) }),
+};
+
+// ─── Guild Templates ──────────────────────────────────────────────────────────
+
+export const guildTemplatesApi = {
+  create: (guildId: string, data: { name: string; description?: string }) =>
+    request<GuildTemplateInfo>(`/guilds/${guildId}/templates`, { method: 'POST', body: JSON.stringify(data) }),
+  list: (guildId: string) => request<GuildTemplateInfo[]>(`/guilds/${guildId}/templates`),
+};
+
+// ─── Sound Effects ────────────────────────────────────────────────────────────
+
+export const soundEffectsApi = {
+  create: (guildId: string, data: { name: string; file_url: string; duration_ms?: number }) =>
+    request<SoundEffect>(`/guilds/${guildId}/sound-effects`, { method: 'POST', body: JSON.stringify(data) }),
+  list: (guildId: string) => request<SoundEffect[]>(`/guilds/${guildId}/sound-effects`),
+  delete: (guildId: string, effectId: string) =>
+    request<void>(`/guilds/${guildId}/sound-effects/${effectId}`, { method: 'DELETE' }),
+};
+
+// ─── Reminders ────────────────────────────────────────────────────────────────
+
+export const remindersApi = {
+  create: (data: { content: string; remind_at: string; channel_id?: string }) =>
+    request<ReminderInfo>('/reminders', { method: 'POST', body: JSON.stringify(data) }),
+  list: () => request<ReminderInfo[]>('/reminders'),
+  delete: (reminderId: string) => request<void>(`/reminders/${reminderId}`, { method: 'DELETE' }),
+};
+
+// ─── Auto-mod Rules ───────────────────────────────────────────────────────────
+
+export const autoModApi = {
+  create: (guildId: string, data: { name: string; trigger_type: string; trigger_metadata: string; action_type: string; action_metadata?: string; enabled?: boolean }) =>
+    request<AutoModRule>(`/guilds/${guildId}/automod`, { method: 'POST', body: JSON.stringify(data) }),
+  list: (guildId: string) => request<AutoModRule[]>(`/guilds/${guildId}/automod`),
+  update: (guildId: string, ruleId: string, data: Partial<{ name: string; trigger_type: string; trigger_metadata: string; action_type: string; action_metadata: string; enabled: boolean }>) =>
+    request<AutoModRule>(`/guilds/${guildId}/automod/${ruleId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (guildId: string, ruleId: string) =>
+    request<void>(`/guilds/${guildId}/automod/${ruleId}`, { method: 'DELETE' }),
+};
+
+// ─── User Slowmode ────────────────────────────────────────────────────────────
+
+export const userSlowmodeApi = {
+  set: (channelId: string, data: { user_id: string; delay_seconds: number; expires_at?: string }) =>
+    request<UserSlowmodeInfo>(`/channels/${channelId}/slowmode/users`, { method: 'PUT', body: JSON.stringify(data) }),
+  list: (channelId: string) => request<UserSlowmodeInfo[]>(`/channels/${channelId}/slowmode/users`),
+  remove: (channelId: string, userId: string) =>
+    request<void>(`/channels/${channelId}/slowmode/users/${userId}`, { method: 'DELETE' }),
+};
+
+// ─── Channel Archive ──────────────────────────────────────────────────────────
+
+export const channelArchiveApi = {
+  archive: (guildId: string, channelId: string) =>
+    request<Channel>(`/guilds/${guildId}/channels/${channelId}/archive`, { method: 'POST' }),
+  unarchive: (guildId: string, channelId: string) =>
+    request<Channel>(`/guilds/${guildId}/channels/${channelId}/unarchive`, { method: 'POST' }),
+};
+
+// ─── Stickers ─────────────────────────────────────────────────────────────────
+
+export const stickersApi = {
+  create: (guildId: string, data: { name: string; image_url: string; description?: string; tags?: string }) =>
+    request<GuildSticker>(`/guilds/${guildId}/stickers`, { method: 'POST', body: JSON.stringify(data) }),
+  list: (guildId: string) => request<GuildSticker[]>(`/guilds/${guildId}/stickers`),
+  delete: (guildId: string, stickerId: string) =>
+    request<void>(`/guilds/${guildId}/stickers/${stickerId}`, { method: 'DELETE' }),
+};
+
+// ─── User Badges ──────────────────────────────────────────────────────────────
+
+export const userBadgesApi = {
+  award: (userId: string, data: { user_id: string; badge_name: string; badge_icon?: string; description?: string }) =>
+    request<UserBadge>(`/users/${userId}/badges`, { method: 'POST', body: JSON.stringify(data) }),
+  list: (userId: string) => request<UserBadge[]>(`/users/${userId}/badges`),
+};
+
+// ─── Guild Tags ───────────────────────────────────────────────────────────────
+
+export const guildTagsApi = {
+  add: (guildId: string, tag: string) =>
+    request<GuildTagInfo>(`/guilds/${guildId}/tags`, { method: 'POST', body: JSON.stringify({ tag }) }),
+  list: (guildId: string) => request<GuildTagInfo[]>(`/guilds/${guildId}/tags`),
+  remove: (guildId: string, tagId: string) =>
+    request<void>(`/guilds/${guildId}/tags/${tagId}`, { method: 'DELETE' }),
+};
+
+// ─── Vanity Invite ────────────────────────────────────────────────────────────
+
+export const vanityInviteApi = {
+  set: (guildId: string, code: string) =>
+    request<VanityInviteInfo>(`/guilds/${guildId}/vanity`, { method: 'PUT', body: JSON.stringify({ code }) }),
+  get: (guildId: string) => request<VanityInviteInfo>(`/guilds/${guildId}/vanity`),
+};
+
+// ─── Extended Audit Log ───────────────────────────────────────────────────────
+
+export const extendedAuditLogApi = {
+  list: (guildId: string, params?: { limit?: number; before?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.limit) qs.set('limit', String(params.limit));
+    if (params?.before) qs.set('before', params.before);
+    const q = qs.toString() ? `?${qs}` : '';
+    return request<ExtendedAuditLogEntry[]>(`/guilds/${guildId}/audit-log-ext${q}`);
+  },
+};
+
+// ─── User Connections ─────────────────────────────────────────────────────────
+
+export const userConnectionsApi = {
+  add: (data: { provider: string; provider_id: string; provider_name?: string; is_visible?: boolean }) =>
+    request<UserConnectionInfo>('/users/me/connections', { method: 'POST', body: JSON.stringify(data) }),
+  listMine: () => request<UserConnectionInfo[]>('/users/me/connections'),
+  listUser: (userId: string) => request<UserConnectionInfo[]>(`/users/${userId}/connections`),
+  remove: (connectionId: string) =>
+    request<void>(`/users/me/connections/${connectionId}`, { method: 'DELETE' }),
 };
