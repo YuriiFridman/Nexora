@@ -19,6 +19,7 @@ from app.routers import (
     auth,
     channels,
     dms,
+    features,
     guilds,
     invites,
     messages,
@@ -138,6 +139,7 @@ app.include_router(notifications.router, prefix=API_PREFIX)
 app.include_router(totp.router, prefix=API_PREFIX)
 app.include_router(user_notes.router, prefix=API_PREFIX)
 app.include_router(read_state.router, prefix=API_PREFIX)
+app.include_router(features.router, prefix=API_PREFIX)
 
 
 @app.get("/health")
